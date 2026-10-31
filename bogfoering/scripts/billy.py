@@ -114,7 +114,10 @@ def file_text(file_id):
     p = os.path.join(CACHE, "text", file_id + ".txt")
     if os.path.exists(p):
         with open(p, encoding="utf-8") as fh:
-            return fh.read()
+            cached = fh.read()
+        # ældre versioner cachede importfejlen som tekst; læs PDF'en igen i stedet
+        if not cached.startswith("[pdf-fejl: No module named"):
+            return cached
     data = file_bytes(file_id)
     txt = ""
     if data[:4] == b"%PDF":

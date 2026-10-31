@@ -22,9 +22,9 @@ Salgskoder (S, SYE, SYU, SVE, SVU, SOB, SF) bruges på fakturaer, ikke regninger
 - Sælger er etableret i et andet EU-land, fx "Google Ireland Limited", og der står "reverse charge": KYE (ydelser) / KVE (varer)
 - Sælger er etableret uden for EU (USA osv.): KYU / KVU. Det gælder også, selvom fakturaen viser et IE- eller EU OSS-momsnummer (fx Anthropic, PBC; OpenAI OpCo, LLC).
 
-**Vurdering 31/10-2026, med forbehold:** Anthropic og OpenAI viser et EU-momsnummer på fakturaen (IE… og EU OSS), men det er stadig KYU.
+**Vurdering 31/10-2026, udledt og ikke verificeret mod en primærkilde:** Anthropic og OpenAI viser et EU-momsnummer på fakturaen (IE… og EU OSS), men det er stadig KYU.
 - Sikkerheden er ikke ens for de to:
-  - **OpenAI:** stærkest. EU OSS-nummeret hører til ikke-EU-ordningen, og den er kun for virksomheder uden etablering i EU.
+  - **OpenAI:** stærkest. Et momsnummer med præfikset "EU" udstedes normalt under ikke-EU-ordningen (non-Union OSS) for virksomheder uden etablering i EU. Det er ikke verificeret her.
   - **Anthropic:** udledt. IE4276970QH er et almindeligt irsk momsnummer, så et fast forretningssted i Irland er ikke udelukket.
 - Momsen netto er 0 kr. i begge tilfælde. Kun rubrik A-ydelser påvirkes.
 - Afgørende er, hvor det udstedende selskab er etableret. Her er det "Anthropic, PBC" og "OpenAI OpCo, LLC", begge i San Francisco. Momsnummeret afgør det ikke.
@@ -44,7 +44,7 @@ Salgskoder (S, SYE, SYU, SVE, SVU, SOB, SF) bruges på fakturaer, ikke regninger
 | 1860 | Consultants and Freelancers | Underleverandører |
 | 1620 | Transport and Travel | Tog, rejser |
 | 1660 | Restaurant | Repræsentation (standardmomskode KR) |
-| 1840 | Small Acquisitions | Småanskaffelser under straksafskrivningsgrænsen (2026: 36.000 kr. ekskl. moms; 2025: 34.400 kr. Kilde: dinero.dk/ordbog/straksafskrivning, tjek SKAT ved tvivl) |
+| 1840 | Small Acquisitions | Småanskaffelser under straksafskrivningsgrænsen (2026: 36.000 kr. ekskl. moms; 2025: 34.400 kr. Kilde: JV C.C.2.4.2.4.2.5, se `dansk-bogfoering.md` afsnit 9) |
 | 1880 | Equipment | Udstyr over småaktivgrænsen (afskrives ved årsafslutning) |
 | 2320 | Fees | Gebyrer |
 | 1430 | Employee Benefits | Personalegoder |

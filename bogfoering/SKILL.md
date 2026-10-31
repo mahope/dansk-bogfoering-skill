@@ -13,7 +13,7 @@ Sprog: dansk. Alle scripts ligger i `scripts/` og køres med `python <script>.py
 
 ## Hårde regler
 
-1. **Skyggedrift er spærret i koden.** Så længe markørfilen (`skyggedrift_markoer`, standard `<tilstand_mappe>/SKYGGEDRIFT`) findes, nægter `konter.py --apply` og `--godkend` at skrive. Markøren slettes først, når kriteriet nedenfor er nået OG ejeren har sagt go. (`--tving` findes, men må kun bruges efter ejerens udtrykkelige go.)
+1. **Skyggedrift er spærret i koden.** Så længe markørfilen (`skyggedrift_markoer`, standard `<tilstand_mappe>/SKYGGEDRIFT`) findes, nægter `konter.py --apply`, `--godkend` og `ret_moms.py --udfoer` at skrive. Skyggedrift spærrer altså kontering, godkendelse og momsrettelser. Oprydning af dubletter (`dubletter.py --apply`) og upload af bilag (`billy.upload_file` + `billy.attach`) er bevidst tilladt i skyggedrift, fordi de ikke ændrer bogførte tal, og fordi dubletoprydning altid tager backup og flytter bilag først (regel 4). Markøren slettes først, når kriteriet nedenfor er nået OG ejeren har sagt go. (`--tving` findes, men må kun bruges efter ejerens udtrykkelige go.)
 2. **Godkend aldrig i bulk.** Godkendelse = bogføring. `--godkend` kræver `--id`, og hver kladde skal være kladde, ikke være en ikke-regning, have mindst én linje, konto+momskode på alle linjer og mindst ét bilag.
 3. **Bulk-kontering tager kun rene forslag.** `--apply --sikkerhed høj` springer alt over, der har advarselsflag (mulig dublet, mangler bilag, valuta-gæt, afvigende momsland, privat/erhverv, repræsentation). Flaggede kladder konteres kun med eksplicit `--id`.
 4. **Slet aldrig uden backup og bilagsflyt.** Dubletter fjernes kun via `dubletter.py --apply` → `dublet.flyt_bilag_og_slet`: bilag sammenlignes på INDHOLD (sha256), kopieres, verificeres, filerne kopieres til `backup/bilag_<id>/`, og først derefter slettes kladden. Kun kladder slettes, aldrig bogførte poster.
@@ -60,7 +60,7 @@ Målet er at bogføre lige så rigtigt som en erfaren dansk bogholder. Fagregler
 
 ## Skyggedrift mod en bogholder
 
-1. Opret markørfilen (`touch ~/.bogfoering/SKYGGEDRIFT`), så skillet ikke kan skrive til Billy fra første dag.
+1. Opret markørfilen (`touch ~/.bogfoering/SKYGGEDRIFT`), så skillet ikke kan kontere, godkende eller rette moms i Billy fra første dag.
 2. Kør `konter.py` efter hver månedsluk. Forslagene gemmes i `skygge.jsonl` (første forslag pr. kladde tæller).
 3. Når bogholderen har bogført, kør `python skygge.py`: træfsikkerhed og liste over afvigelser.
 4. Ved afvigelser: kør `python laer.py` (lærer af de nye bogføringer). Systematiske afvigelser rettes som særregel i `analyse.foreslaa`.
@@ -99,7 +99,7 @@ Frister ved halvårlig afregning: H1 → 1. september, H2 → 1. marts. Tjek alt
 | `scripts/analyse.py` | Konteringsforslag og sammenligning (rigtig / skattemæssigt ens / forkert) |
 | `scripts/dublet.py` | Dubletfinder og sikker sammenlægning |
 | `scripts/status.py` / `dubletter.py` / `konter.py` / `skygge.py` / `moms.py` / `backtest.py` / `ret_moms.py` | Kommandoer (se ovenfor) |
-| `scripts/regnskabstjek.py` + `test_regnskabstjek.py` | Bogholder-tjek: betalinger uden bankpostering, kreditnotaer, regninger uden bilag |
+| `scripts/regnskabstjek.py` + `test_regnskabstjek.py` | Bogholder-tjek: betalinger uden bankpostering, kreditnotaer (også ikke sendt), fakturanumre, regninger uden bilag; `--bilagsindhold` (CVR og beløb på bilaget) og `--straks` (straksafskrivning) |
 | `scripts/test_config.py` | Tests af config-indlæsning |
 | `reference/dansk-bogfoering.md` | Danske regler (bogføringsloven, fakturakrav, kreditnota, omvendt betalingspligt, repræsentation, fejlrettelse) med kilder |
 | `reference/dansk-bogfoering-kilder.md` | Den fulde research bag reglerne: ordrette citater og "ikke verificeret"-liste (læst 31/10-2026) |

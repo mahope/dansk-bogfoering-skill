@@ -10,14 +10,14 @@ The skill and its prompts are written in Danish, because the bookkeeping rules, 
 - **Shadow mode (`skygge.py`, `backtest.py`).** Logs every proposal, compares it with what the accountant actually booked, and reports accuracy. A back-test mode learns from older bills and tests on newer ones.
 - **Duplicate finder (`dublet.py`, `dubletter.py`).** Finds bank drafts that are the same purchase as an approved bill (for example a DKK bank draft against a EUR bill), and merges them safely: attachments are compared by content hash, copied, verified and backed up before the draft is deleted.
 - **VAT check (`moms.py`, `ret_moms.py`).** Shows Billy's own VAT return, warns about drafts and missing receipts that would make it wrong, and can correct a VAT code on a single approved bill with backup, a comment and a change log (dry run by default).
-- **Accountant-style audit (`regnskabstjek.py`, read-only).** Payments with no matching bank posting, credit notes that do not reference or exceed their invoice, approved bills without a receipt.
+- **Accountant-style audit (`regnskabstjek.py`, read-only).** Payments with no matching bank posting, credit notes that do not reference or exceed their invoice or were never sent to the customer, gaps and duplicates in invoice numbers, and approved bills without a receipt. With `--bilagsindhold` it reads the PDFs and flags receipts without the buyer's CVR/VAT number or with an amount that does not match the bill. With `--straks` it checks small-asset write-off limits (straksafskrivning) per year.
 - **Sourced Danish rules (`bogfoering/reference/`).** Invoice requirements, credit notes, reverse charge (KYE/KYU), representation, VAT-exempt costs, VAT return corrections, the bookkeeping act, write-offs. Every rule points at a primary source (retsinformation.dk, info.skat.dk, Erhvervsstyrelsen), and unverified points are marked as such.
 
 ## Requirements
 
 - Python 3.10 or newer. The scripts use the standard library only.
 - A Billy API token (created in your Billy organisation settings).
-- Optional: [PyMuPDF](https://pymupdf.readthedocs.io/) (`pip install pymupdf`) to read the text of PDF attachments. Without it the skill still works, but vendor recognition from invoice PDFs is skipped.
+- Optional: [PyMuPDF](https://pymupdf.readthedocs.io/) (`pip install pymupdf`) to read the text of PDF attachments. Without it the skill still works, but vendor recognition from invoice PDFs is skipped, and `regnskabstjek.py --bilagsindhold` refuses to run.
 - Optional: bank data as JSON files (see "Bank data format") for the payment check in `regnskabstjek.py`.
 
 ## Installation
@@ -60,8 +60,8 @@ Then restart Claude Code. The skill triggers on phrases such as "bogfør", "kont
 | `billy_token_fil` | Optional env file containing `BILLY_API_TOKEN=`. | none |
 | `bank.data_mappe` | Folder with bank JSON files. | `<tilstand_mappe>/bank` |
 | `bank.konti` | Maps a Billy account number to the last digits of the bank account, for example `{"5710": "0001"}`. | `{}` |
-| `billy_konti` | Account numbers in your chart: `momskonto` (VAT account), `udstyr` (equipment, depreciated), `restaurant` (representation). | 5715, 1880, 1660 |
-| `skyggedrift_markoer` | Marker file; while it exists, nothing is written to Billy by the posting commands. | `<tilstand_mappe>/SKYGGEDRIFT` |
+| `billy_konti` | Account numbers in your chart: `momskonto` (VAT account), `udstyr` (equipment, depreciated), `restaurant` (representation), `smaaanskaffelser` (small assets, written off at once; used by `--straks`). | 5715, 1880, 1660, 1840 |
+| `skyggedrift_markoer` | Marker file; while it exists, posting (`konter.py --apply`), approval (`--godkend`) and VAT-code corrections (`ret_moms.py`) refuse to write. | `<tilstand_mappe>/SKYGGEDRIFT` |
 
 Check the vendor list in `bogfoering/scripts/leverandoer.py` (`VENDORS`, `IKKE_REGNING`, `ALIASER`). It is a starting point with common vendors and examples; add your own vendors and adapt the "not an invoice" patterns to your bank's transaction texts.
 
@@ -76,6 +76,7 @@ python dubletter.py --fra 2026-09-01 # list duplicate candidates (add --apply fo
 python konter.py --maaned 2026-09    # posting proposals, logged to the shadow log
 python skygge.py                     # accuracy against what the accountant booked
 python regnskabstjek.py              # accountant-style audit, read-only
+python regnskabstjek.py --bilagsindhold --straks  # also read receipt PDFs and check write-off limits
 python moms.py                       # VAT return check
 ```
 
@@ -104,7 +105,7 @@ The skill does not fetch bank data and has no payment functionality. Without `ba
 
 ## Safety model
 
-- **Shadow mode first.** While the marker file exists, `konter.py --apply` and `--godkend` refuse to write. The skill proposes, your accountant books, and `skygge.py` measures the difference. Delete the marker only when the accuracy criterion in `SKILL.md` is reached and the business owner agrees.
+- **Shadow mode first.** While the marker file exists, `konter.py --apply`, `--godkend` and `ret_moms.py --udfoer` refuse to write (`--tving` overrides, only with the owner's explicit go). Housekeeping writes stay allowed: merging duplicate drafts (`dubletter.py --apply`, always with backup and verified attachment copy) and uploading receipts, because they do not change booked figures. The skill proposes, your accountant books, and `skygge.py` measures the difference. Delete the marker only when the accuracy criterion in `SKILL.md` is reached and the business owner agrees.
 - **Never bulk-approve.** Approving a draft is bookkeeping. `--godkend` requires explicit ids, and every draft must have lines, an account and VAT code on every line, and an attachment. Bulk `--apply` only touches clean proposals without warning flags.
 - **Backups and change log.** Before any write the affected bill and lines are saved to `<tilstand_mappe>/backup/`. Duplicates are removed only after attachments are copied and verified by content hash, and the files are backed up. Corrections to approved bills (`ret_moms.py`) are dry runs by default, leave a comment on the line, are verified afterwards, and are logged to `<tilstand_mappe>/aendringer/`. They are never made in a period whose VAT return is settled.
 - **VAT is never filed from here.** The skill checks; you file in TastSelv or through Billy.
@@ -122,6 +123,10 @@ The tests need no network and no Billy account.
 
 This is not professional accounting, tax or legal advice. The rules in `reference/` were researched from public sources at the time of writing and may be outdated or wrong for your situation; points that could not be verified are marked "ikke verificeret". The posting proposals are statistical guesses based on your accountant's history. Review everything, keep your own backups, and consult your accountant or auditor. You use the software at your own risk (see `LICENSE`). This project is not affiliated with Billy or any of the vendors named in the examples.
 
+## Acknowledgements
+
+Several checks (bilag content against the bill, invoice-number gaps, year-keyed straksafskrivning limits) were inspired by [Rentemester](https://github.com/mikkelkrogsholm/rentemester) by Mikkel Krogsholm (MIT). No code was copied; the ideas were reimplemented in Python for Billy.
+
 ## License
 
 MIT, see `LICENSE`.
@@ -136,10 +141,10 @@ Et Claude Code-skill til dansk bogføring i Billy. Det kan:
 - køre i **skyggedrift**, hvor forslagene logges og sammenlignes med bogholderens faktiske bogføring (`skygge.py`, `backtest.py`),
 - finde og rydde dubletter sikkert, med bilagsflyt, kontrol og backup (`dubletter.py`),
 - tjekke moms (`moms.py`) og rette en momskode på en bogført regning med backup og ændringslog (`ret_moms.py`),
-- lave et bogholder-tjek (`regnskabstjek.py`, kun læsning): betalinger uden bankpostering, kreditnotaer uden henvisning og regninger uden bilag,
+- lave et bogholder-tjek (`regnskabstjek.py`, kun læsning): betalinger uden bankpostering, kreditnotaer uden henvisning eller ikke sendt, huller i fakturanumre, regninger uden bilag og (med `--bilagsindhold`) bilag uden købers CVR eller med forkert beløb,
 - slå op i danske regler med primærkilder (`bogfoering/reference/`).
 
-**Kom i gang:** kopiér eller symlink `bogfoering/` til `~/.claude/skills/`, sæt `BILLY_API_TOKEN` (eller `billy_token_fil` i config), kopiér `config.example.json` til `~/.bogfoering/config.json`, og opret markørfilen `~/.bogfoering/SKYGGEDRIFT`, så skillet ikke kan skrive til Billy, før I har målt, at forslagene er til at stole på.
+**Kom i gang:** kopiér eller symlink `bogfoering/` til `~/.claude/skills/`, sæt `BILLY_API_TOKEN` (eller `billy_token_fil` i config), kopiér `config.example.json` til `~/.bogfoering/config.json`, og opret markørfilen `~/.bogfoering/SKYGGEDRIFT`, så skillet ikke kan kontere, godkende eller rette moms i Billy, før I har målt, at forslagene er til at stole på.
 
 **Sikkerhed:** skyggedrift først, aldrig godkendelse i bulk, backup før alle ændringer, ændringslog, og moms indberettes aldrig herfra.
 

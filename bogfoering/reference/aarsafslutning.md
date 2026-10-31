@@ -4,7 +4,7 @@ Status: **plan, ikke bygget.** Byg den, når skyggedriften har vist ≥ 95 % tr�
 
 ## Typiske rammer (enkeltmandsvirksomhed, tjek jeres egne)
 
-- Enkeltmandsvirksomhed beskattes efter **de almindelige regler** (overskud = personlig indkomst, AM-bidrag). Der er ingen pligt til at indsende årsrapport til Erhvervsstyrelsen, men et skattemæssigt regnskab skal kunne dokumenteres, og tallene indberettes på **den udvidede selvangivelse** (oplysningsskemaet). Fristen er normalt 1. juli.
+- Enkeltmandsvirksomhed beskattes efter **de almindelige regler** (overskud = personlig indkomst, AM-bidrag). Der er ingen pligt til at indsende årsrapport til Erhvervsstyrelsen, men et skattemæssigt regnskab skal kunne dokumenteres, og tallene indberettes på **den udvidede selvangivelse** (oplysningsskemaet). Fristen er normalt 1. juli (ikke verificeret her; tjek skat.dk).
 - Moms halvårlig: H2 indberettes senest 1. marts.
 - Nogle banker kan automatisk overføre en andel af indbetalinger til en separat momskonto. Overførslerne skal gå i nul mellem kontiene i bogføringen.
 - Kørselsgodtgørelse samles typisk og bogføres i december.
@@ -16,7 +16,7 @@ Status: **plan, ikke bygget.** Byg den, når skyggedriften har vist ≥ 95 % tr�
 3. **Moms H2** afstemt (`moms.py`) og momskontoens saldo = skyldig moms.
 4. **Debitorer:** ubetalte salgsfakturaer pr. 31/12 (indtægt tæller i faktureringsåret).
 5. **Kreditorer/periodisering:** årsabonnementer betalt i året for næste år. Små beløb periodiseres normalt ikke, revisor afgør grænsen.
-6. **Anlægsaktiver:** køb over straksafskrivningsgrænsen (2026: 36.000 kr. ekskl. moms) på saldoen, afskriv op til 25 %. Under grænsen = straksafskrivning (konto 1840).
+6. **Anlægsaktiver:** køb over straksafskrivningsgrænsen (2026: 36.000 kr. ekskl. moms) på saldoen, afskriv op til 25 % (ikke verificeret her; tjek afskrivningsloven og jeres revisor). Under grænsen = straksafskrivning (konto 1840).
 7. **Kørselsgodtgørelse:** bogfør årets kørselsregnskab (km × årets sats) som udgift/godtgørelse.
 8. **Repræsentation:** kun 25 % fradrag (skat) og 25 % af momsen (KR).
 9. **Private andele:** telefon, internet, computer, hjemmekontor. Fastsæt privat andel eller bekræft, at der ikke er nogen.

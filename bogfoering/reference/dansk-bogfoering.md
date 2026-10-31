@@ -15,9 +15,9 @@ Forkortelser: ML = momsloven (LBK 209/2024), mbek = momsbekendtgørelsen (BEK 14
   - ydelsens art og omfang;
   - momsgrundlag, sats og momsbeløb.
 - **Udenlandsk sælger med omvendt betalingspligt** skal desuden have købers momsnummer og teksten "reverse charge" på fakturaen (mbek § 59).
-- **Bogføringsloven** kræver navn, adresse og CVR på både afsender og modtager på købs- og salgsbilag, der skal gemmes digitalt (BEK 1383 § 1).
+- **Købers CVR kræves ikke** på en dansk faktura efter momsreglerne, kun købers navn og adresse (mbek § 58, stk. 1, nr. 4). BEK 1383 § 1 afgør kun, hvilke købs- og salgsbilag der skal opbevares digitalt (dem med navn, adresse og CVR på begge parter); den gør ikke CVR til et krav på fakturaen.
   - Om virksomheden er omfattet af pligten til digital opbevaring, afhænger af omsætningen, se afsnit 8.
-  - **Praksis:** bed alligevel om en ny faktura, hvis købers CVR mangler. Bogholdere og revisorer kræver det ofte, og det gør bilaget robust.
+  - **Praksis (ikke lovkrav):** bed gerne om en ny faktura, hvis købers CVR mangler. Mange bogholdere ønsker det, og det gør bilaget robust.
 - **Forenklet faktura:** tilladt ved højst 3.000 kr. pr. leverance (mbek § 66). Om beløbet er inkl. eller ekskl. moms, er ikke verificeret. En registreret køber kan altid forlange en fuld faktura.
 - **Hvad der ikke er bilag nok:**
   - **Ordrebekræftelse:** ikke en faktura (SKM2013.881.BR).
@@ -49,7 +49,7 @@ Forkortelser: ML = momsloven (LBK 209/2024), mbek = momsbekendtgørelsen (BEK 14
 - **Vurdering 31/10-2026 (ikke afgjort af skat.dk):**
   - OpenAI fakturerer fra "OpenAI OpCo, LLC, San Francisco" med EU OSS-nummer. Anthropic fakturerer fra "Anthropic, PBC, San Francisco" med det irske momsnummer IE4276970QH.
   - Begge er amerikanske selskaber, altså **KYU**.
-  - For OpenAI er det stærkt belagt: EU OSS-nummeret hører til ikke-EU-ordningen. For Anthropic er det udledt, fordi et irsk fast forretningssted ikke er udelukket. Ingen af dem er afgjort af skat.dk.
+  - Begge vurderinger er udledt af fakturaens selskabsnavn og adresse plus etableringsreglen. Hvilke selskaber der fakturerer danske kunder, og at et "EU"-præfiks hører til ikke-EU-ordningen (non-Union OSS), er IKKE VERIFICERET mod en primærkilde (se `dansk-bogfoering-kilder.md`, Uafklaret). For Anthropic er et irsk fast forretningssted ikke udelukket.
   - Momsen netto er 0 kr. uanset hvad. Kun rubrik A-ydelser påvirkes.
 - **Forskellen fra Google Ads:** Google Ireland Limited er et irsk selskab, altså **KYE**.
 
@@ -74,7 +74,7 @@ Forkortelser: ML = momsloven (LBK 209/2024), mbek = momsbekendtgørelsen (BEK 14
 - **Åben periode:** ret bogføringen før angivelsen. En indberetning kan rettes samme dag frem til kl. 16.
 - **Afregnet periode:**
   - Ret angivelsen i TastSelv Erhverv. Juridisk er det en anmodning om genoptagelse (JV A.A.8.3.1.3).
-  - Fristen er 3 år fra angivelsesfristen. Der er ingen beløbsgrænse.
+  - Fristen er 3 år fra angivelsesfristen (SFL § 31, stk. 2). Der er ikke fundet nogen beløbsgrænse for rettelser.
   - Ret aldrig bare bogføringen i en afregnet periode uden også at rette angivelsen (se SKILL.md, regel 11).
 - **Ikke verificeret:** at små fejl må rettes i næste angivelse. Antag rettelse af den berørte periode.
 
@@ -89,10 +89,9 @@ Forkortelser: ML = momsloven (LBK 209/2024), mbek = momsbekendtgørelsen (BEK 14
 
 - **Opbevaring:** 5 år fra udgangen af regnskabsåret (BFL § 12).
 - **Digitalt bogføringssystem:** pligten gælder fra regnskabsåret 2026 for personligt ejede virksomheder med en nettoomsætning over 300.000 kr. i hvert af de to foregående år (BEK 297/2025; BFL § 16). Bilag skal opbevares digitalt i systemet (BEK 1383).
-  - Pligten afhænger af nettoomsætningen (fakturaer minus kreditnotaer, ekskl. moms) i de to foregående regnskabsår. Tjek tallene i Billy mod grænsen hvert år.
-  - Er grænsen overskredet i to år i træk, gælder pligten fra det efterfølgende regnskabsår. Ved ApS-omdannelse gælder årsregnskabslovens regler i stedet.
+  - Tjek hvert år omsætningen i de to foregående år mod grænsen. Fakturaer minus kreditnotaer ekskl. moms i Billy er et praktisk overslag; den præcise definition af nettoomsætning er ikke undersøgt her.
   - Om Billy er registreret hos Erhvervsstyrelsen som digitalt bogføringssystem, er ikke verificeret.
-- **Rettidighed:** transaktioner registreres "snarest muligt" (BFL § 7). Erhvervsstyrelsen siger, at det som udgangspunkt skal ske inden for løbende måned.
+- **Rettidighed:** transaktioner registreres "snarest muligt" (BFL § 7). Erhvervsstyrelsen skriver, at virksomheder som udgangspunkt bør tilstræbe at registrere inden for løbende måned.
 
 ## 9. Straksafskrivning
 

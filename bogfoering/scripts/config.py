@@ -9,7 +9,8 @@ Felter (se config.example.json):
   tilstand_mappe        Hvor regler, skyggelog, cache og backups ligger. Standard ~/.bogfoering
   billy_token_fil       Valgfri sti til en env-fil med linjen BILLY_API_TOKEN=... (miljøvariablen vinder).
   bank                  {"data_mappe": mappe med bank-JSON, "konti": {"<Billy-kontonr>": "<kontoens slutcifre>"}}
-  billy_konti           Kontonumre i jeres kontoplan: momskonto, udstyr (afskrives) og restaurant (repræsentation).
+  billy_konti           Kontonumre i jeres kontoplan: momskonto, udstyr (afskrives), småanskaffelser (straksafskrives)
+                        og restaurant (repræsentation).
   skyggedrift_markoer   Fil, der spærrer skrivning til Billy, så længe den findes. Standard <tilstand_mappe>/SKYGGEDRIFT
 
 Tokenet printes aldrig.
@@ -26,7 +27,7 @@ def standard():
         "tilstand_mappe": "~/.bogfoering",
         "billy_token_fil": None,
         "bank": {"data_mappe": None, "konti": {}},
-        "billy_konti": {"momskonto": "5715", "udstyr": "1880", "restaurant": "1660"},
+        "billy_konti": {"momskonto": "5715", "udstyr": "1880", "restaurant": "1660", "smaaanskaffelser": "1840"},
         "skyggedrift_markoer": None,
     }
 
