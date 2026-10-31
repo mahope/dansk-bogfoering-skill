@@ -1,0 +1,20 @@
+{
+  "virksomhed": {
+    "navn": "Eksempel ApS",
+    "cvr": "12345678"
+  },
+  "tilstand_mappe": "~/.bogfoering",
+  "billy_token_fil": "~/.bogfoering/billy.env",
+  "bank": {
+    "data_mappe": "~/.bogfoering/bank",
+    "konti": {
+      "5710": "0001"
+    }
+  },
+  "billy_konti": {
+    "momskonto": "5715",
+    "udstyr": "1880",
+    "restaurant": "1660"
+  },
+  "skyggedrift_markoer": "~/.bogfoering/SKYGGEDRIFT"
+}
