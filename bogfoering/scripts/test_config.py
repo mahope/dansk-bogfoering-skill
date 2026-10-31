@@ -49,12 +49,12 @@ class Token(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             fil = os.path.join(d, "t.env")
             with open(fil, "w", encoding="utf-8") as fh:
-                fh.write("BILLY_API_TOKEN=fra-fil\n")
+                fh.write("BILLY_API_TOKEN=<fra-fil>\n")
             cfg = {"billy_token_fil": fil}
             with mock.patch.dict(os.environ, {"BILLY_API_TOKEN": "fra-miljoe"}):
                 self.assertEqual(config.token(cfg), "fra-miljoe")
             with mock.patch.dict(os.environ, {"BILLY_API_TOKEN": ""}):
-                self.assertEqual(config.token(cfg), "fra-fil")
+                self.assertEqual(config.token(cfg), "<fra-fil>")
 
     def test_manglende_token_er_en_tydelig_fejl_uden_at_laekke(self):
         with tempfile.TemporaryDirectory() as d:
