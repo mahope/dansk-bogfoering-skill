@@ -4,7 +4,7 @@
     python regnskabstjek.py --fra 2026-07-01
     python regnskabstjek.py --med-annullerede  # tag annullerede betalinger med (bevis på at tjekket fanger noget)
     python regnskabstjek.py --uden-bilagstjek  # spring det langsomme bilagstjek over
-    python regnskabstjek.py --bilagsindhold    # læs PDF'erne: købers CVR og beløb (kræver PyMuPDF)
+    python regnskabstjek.py --bilagsindhold    # læs PDF'erne: køber og beløb (kræver PyMuPDF)
     python regnskabstjek.py --straks           # straksafskrivning på regningslinjerne
 
 Tjek (reglerne og kilderne står i reference/dansk-bogfoering.md og reference/laerte-regler.md):
@@ -15,7 +15,8 @@ Tjek (reglerne og kilderne står i reference/dansk-bogfoering.md og reference/la
      eller er dateret før den.
   3. Bogførte regninger uden bilag (bankkladder der ikke er regninger, fx Income sorter, springes over).
   4. Huller og dubletter i fakturanumrene (mbek § 58: fortløbende nummer).
-  5. --bilagsindhold: bilag uden købers CVR, eller hvor regningens beløb ikke står på bilaget.
+  5. --bilagsindhold: udenlandske bilag uden købers momsnummer (mbek § 59), danske bilag over 3.000 kr. uden
+     købers navn (mbek § 58), og bilag hvor regningens beløb ikke står.
   6. --straks: småanskaffelser over straksafskrivningsgrænsen og udstyr under den.
 
 Bankdata (valgfri) ligger som JSON-filer i config bank.data_mappe, i Enable Banking/PSD2-format: et objekt med
@@ -263,7 +264,7 @@ def main():
     ap.add_argument("--fra", default=f"{dt.date.today().year}-01-01")
     ap.add_argument("--med-annullerede", action="store_true")
     ap.add_argument("--uden-bilagstjek", action="store_true")
-    ap.add_argument("--bilagsindhold", action="store_true", help="læs PDF'erne: købers CVR og beløb (langsomt, kræver PyMuPDF)")
+    ap.add_argument("--bilagsindhold", action="store_true", help="læs PDF'erne: køber og beløb (langsomt, kræver PyMuPDF)")
     ap.add_argument("--straks", action="store_true", help="tjek straksafskrivning på linjerne (henter linjer pr. regning)")
     a = ap.parse_args()
 

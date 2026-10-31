@@ -29,11 +29,11 @@ Når en bogholder eller revisor sender en liste med rettelser, bliver hvert punk
 - **Tjek:** `regnskabstjek.py`, "betaling uden bankpostering". Med `--med-annullerede` fanger det også gamle, annullerede betalinger, og det beviser, at tjekket virker.
 - **Status:** Rettes ved kilden i det system, der opretter betalingerne (kortbetalinger skal pege på betalingsudbyderens konto). Betalinger fra før rettelsen flyttes manuelt.
 
-## 2. Et bilag er selve fakturaen med køberens navn og CVR
+## 2. Et bilag er selve fakturaen med køberen på
 
 - **Hvad gik galt:** Leverandørens fakturaer havde køberens navn og adresse, men intet CVR. Tidligere var skærmbilleder, kvitteringer og ordrebekræftelser blevet lagt som bilag.
-- **Reglen:** Bilaget skal være fakturaen fra sælger. Den skal have køber (navn og CVR/momsnummer), dato, fakturanummer, varebeskrivelse og moms eller "reverse charge". Mangler CVR, bed leverandøren om at genudstede fakturaen. Se `dansk-bogfoering.md`, fakturakrav.
-- **Tjek:** Manuelt ved upload, hvor PDF-teksten skal indeholde virksomhedens CVR. `regnskabstjek.py` fanger bogførte regninger helt uden bilag.
+- **Reglen:** Bilaget skal være fakturaen fra sælger. Den skal have køber (navn; på udenlandske fakturaer også momsnummer, mbek § 59), dato, fakturanummer, varebeskrivelse og moms eller "reverse charge". CVR på danske fakturaer er praksis, ikke lovkrav. Mangler det, bed leverandøren om at genudstede fakturaen. Se `dansk-bogfoering.md`, fakturakrav.
+- **Tjek:** `regnskabstjek.py --bilagsindhold` (momsnummer på udenlandske, navn på danske over 3.000 kr., og beløbet). Bogførte regninger helt uden bilag fanges altid.
 - **Status:** Løbende. Bed leverandører med automatisk fakturaudsendelse om at bruge det rigtige CVR.
 
 ## 3. Find den faktura, der passer til netop den bankpostering

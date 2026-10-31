@@ -10,7 +10,7 @@ The skill and its prompts are written in Danish, because the bookkeeping rules, 
 - **Shadow mode (`skygge.py`, `backtest.py`).** Logs every proposal, compares it with what the accountant actually booked, and reports accuracy. A back-test mode learns from older bills and tests on newer ones.
 - **Duplicate finder (`dublet.py`, `dubletter.py`).** Finds bank drafts that are the same purchase as an approved bill (for example a DKK bank draft against a EUR bill), and merges them safely: attachments are compared by content hash, copied, verified and backed up before the draft is deleted.
 - **VAT check (`moms.py`, `ret_moms.py`).** Shows Billy's own VAT return, warns about drafts and missing receipts that would make it wrong, and can correct a VAT code on a single approved bill with backup, a comment and a change log (dry run by default).
-- **Accountant-style audit (`regnskabstjek.py`, read-only).** Payments with no matching bank posting, credit notes that do not reference or exceed their invoice or were never sent to the customer, gaps and duplicates in invoice numbers, and approved bills without a receipt. With `--bilagsindhold` it reads the PDFs and flags receipts without the buyer's CVR/VAT number or with an amount that does not match the bill. With `--straks` it checks small-asset write-off limits (straksafskrivning) per year.
+- **Accountant-style audit (`regnskabstjek.py`, read-only).** Payments with no matching bank posting, credit notes that do not reference or exceed their invoice or were never sent to the customer, gaps and duplicates in invoice numbers, and approved bills without a receipt. With `--bilagsindhold` it reads the PDFs and flags foreign receipts without the buyer's VAT number, Danish receipts over 3.000 kr without the buyer's name, or with an amount that does not match the bill. With `--straks` it checks small-asset write-off limits (straksafskrivning) per year.
 - **Sourced Danish rules (`bogfoering/reference/`).** Invoice requirements, credit notes, reverse charge (KYE/KYU), representation, VAT-exempt costs, VAT return corrections, the bookkeeping act, write-offs. Every rule points at a primary source (retsinformation.dk, info.skat.dk, Erhvervsstyrelsen), and unverified points are marked as such.
 
 ## Requirements
@@ -55,7 +55,7 @@ Then restart Claude Code. The skill triggers on phrases such as "bogfør", "kont
 
 | Field | Meaning | Default |
 |---|---|---|
-| `virksomhed.navn`, `virksomhed.cvr` | Your company. The CVR is ignored when guessing a seller's VAT country, because it appears on every invoice to you. | empty |
+| `virksomhed.navn`, `virksomhed.cvr` | Your company. The CVR is ignored when guessing a seller's VAT country, and `--bilagsindhold` looks for the CVR (as VAT number) on foreign invoices and the name on Danish invoices. | empty |
 | `tilstand_mappe` | State folder: learned rules, shadow log, cache, backups, change log. | `~/.bogfoering` |
 | `billy_token_fil` | Optional env file containing `BILLY_API_TOKEN=`. | none |
 | `bank.data_mappe` | Folder with bank JSON files. | `<tilstand_mappe>/bank` |
@@ -141,7 +141,7 @@ Et Claude Code-skill til dansk bogføring i Billy. Det kan:
 - køre i **skyggedrift**, hvor forslagene logges og sammenlignes med bogholderens faktiske bogføring (`skygge.py`, `backtest.py`),
 - finde og rydde dubletter sikkert, med bilagsflyt, kontrol og backup (`dubletter.py`),
 - tjekke moms (`moms.py`) og rette en momskode på en bogført regning med backup og ændringslog (`ret_moms.py`),
-- lave et bogholder-tjek (`regnskabstjek.py`, kun læsning): betalinger uden bankpostering, kreditnotaer uden henvisning eller ikke sendt, huller i fakturanumre, regninger uden bilag og (med `--bilagsindhold`) bilag uden købers CVR eller med forkert beløb,
+- lave et bogholder-tjek (`regnskabstjek.py`, kun læsning): betalinger uden bankpostering, kreditnotaer uden henvisning eller ikke sendt, huller i fakturanumre, regninger uden bilag og (med `--bilagsindhold`) udenlandske bilag uden købers momsnummer, danske bilag over 3.000 kr. uden købers navn og bilag med forkert beløb,
 - slå op i danske regler med primærkilder (`bogfoering/reference/`).
 
 **Kom i gang:** kopiér eller symlink `bogfoering/` til `~/.claude/skills/`, sæt `BILLY_API_TOKEN` (eller `billy_token_fil` i config), kopiér `config.example.json` til `~/.bogfoering/config.json`, og opret markørfilen `~/.bogfoering/SKYGGEDRIFT`, så skillet ikke kan kontere, godkende eller rette moms i Billy, før I har målt, at forslagene er til at stole på.

@@ -27,7 +27,7 @@ Sprog: dansk. Alle scripts ligger i `scripts/` og køres med `python <script>.py
 7. **Valuta:** Regninger fra en bilagsindbakke bogføres i EUR/USD med kurs. De er *ikke* "euro læst som kroner". Bankkladden i DKK for samme køb er dubletten.
 8. **Moms indberettes aldrig herfra.** Skillet tjekker; ejeren indberetter i TastSelv eller via Billy.
 9. **Usikkerhed → spørg, ikke gæt.** Bankkladder i DKK fra en ukendt leverandør får intet forslag (valutaen siger intet om landet). Repræsentation, privat/erhverv, udstyr over småaktivgrænsen og ukendte leverandører markeres og forelægges ejeren.
-10. **Bilag skal være selve fakturaen/kvitteringen.** Skærmbilleder, ordrebekræftelser, print af portalsider ("Faktura betalt"-siden), betalingsnotitser ("We charged $10") og mail-gengivelser tæller ikke. Hent PDF'en med sælger, køber (jeres navn og CVR), varebeskrivelse og moms. En betalingskvittering uden varebeskrivelse ("Payment to X") duer kun, hvis leverandøren ikke har en faktura. Læg den rigtige faktura på posteringen, og fjern kun det svage bilag efter backup (`backup/bilag_<id>/`).
+10. **Bilag skal være selve fakturaen/kvitteringen.** Skærmbilleder, ordrebekræftelser, print af portalsider ("Faktura betalt"-siden), betalingsnotitser ("We charged $10") og mail-gengivelser tæller ikke. Hent PDF'en med sælger, køber (jeres navn, og på udenlandske fakturaer jeres momsnummer), varebeskrivelse og moms. En betalingskvittering uden varebeskrivelse ("Payment to X") duer kun, hvis leverandøren ikke har en faktura. Læg den rigtige faktura på posteringen, og fjern kun det svage bilag efter backup (`backup/bilag_<id>/`).
 11. **Rettelser af bogførte poster kræver ejerens udtrykkelige go, og alt dokumenteres.** Det gælder tydelige fejl med bevis (fx en momskode, der strider mod fakturaen og mod de fleste tilsvarende linjer). Hver rettelse har backup før, en kommentar bagpå linjens beskrivelse i Billy og en post i `<tilstand_mappe>/aendringer/<dato>.jsonl`. Rettelser af momskode på bogførte regninger går kun gennem `scripts/ret_moms.py` (prøvekørsel først, `--udfoer` skriver og kontrollerer bagefter, `--tving` kræves, så længe skyggedrift er aktiv), og aldrig i en afregnet momsperiode (så kræves en korrektion af momsangivelsen). Bogføring (godkendelse) af kladder og deling af en faktura mellem flere linjer/konti kræver stadig, at tvivl forelægges ejeren (regel 9).
 
 ## Arbejdsgang: månedsluk (ca. den 5. i måneden)
@@ -55,7 +55,7 @@ Målet er at bogføre lige så rigtigt som en erfaren dansk bogholder. Fagregler
   - Højst fakturaens beløb, og dateret efter den.
   - Begrundelsen står i teksten, og den logges.
   - Kreditnotaen sendes til kunden.
-- **Bilag** er sælgers faktura med jeres navn og CVR (se regel 10). Bilaget skal passe til netop den bankpostering, på dato og beløb.
+- **Bilag** er sælgers faktura med jeres navn (og på udenlandske fakturaer jeres momsnummer, mbek § 59). CVR på danske fakturaer er praksis, ikke lovkrav (se regel 10 og `dansk-bogfoering.md` afsnit 1). Bilaget skal passe til netop den bankpostering, på dato og beløb.
 - **Når nogen retter jer:** hver rettelse fra bogholder, revisor eller SKAT bliver én post i `laerte-regler.md` og ét tjek. Tjekket lægges i `regnskabstjek.py` eller i en test, og `python -m unittest discover -p "test_*.py"` (fra `scripts/`) skal være grøn.
 
 ## Skyggedrift mod en bogholder
@@ -99,7 +99,7 @@ Frister ved halvårlig afregning: H1 → 1. september, H2 → 1. marts. Tjek alt
 | `scripts/analyse.py` | Konteringsforslag og sammenligning (rigtig / skattemæssigt ens / forkert) |
 | `scripts/dublet.py` | Dubletfinder og sikker sammenlægning |
 | `scripts/status.py` / `dubletter.py` / `konter.py` / `skygge.py` / `moms.py` / `backtest.py` / `ret_moms.py` | Kommandoer (se ovenfor) |
-| `scripts/regnskabstjek.py` + `test_regnskabstjek.py` | Bogholder-tjek: betalinger uden bankpostering, kreditnotaer (også ikke sendt), fakturanumre, regninger uden bilag; `--bilagsindhold` (CVR og beløb på bilaget) og `--straks` (straksafskrivning) |
+| `scripts/regnskabstjek.py` + `test_regnskabstjek.py` | Bogholder-tjek: betalinger uden bankpostering, kreditnotaer (også ikke sendt), fakturanumre, regninger uden bilag; `--bilagsindhold` (køber og beløb på bilaget) og `--straks` (straksafskrivning) |
 | `scripts/test_config.py` | Tests af config-indlæsning |
 | `reference/dansk-bogfoering.md` | Danske regler (bogføringsloven, fakturakrav, kreditnota, omvendt betalingspligt, repræsentation, fejlrettelse) med kilder |
 | `reference/dansk-bogfoering-kilder.md` | Den fulde research bag reglerne: ordrette citater og "ikke verificeret"-liste (læst 31/10-2026) |
