@@ -268,5 +268,68 @@ class Straksafskrivning(unittest.TestCase):
                                 ("småanskaffelse over straksafskrivningsgrænsen", 35000.0)])
 
 
+def post(dato, beloeb, side="debit", voided=False):
+    return {"entryDate": dato, "amount": beloeb, "baseAmount": beloeb, "side": side, "isVoided": voided}
+
+
+class Bankafstemning(unittest.TestCase):
+    ROWS = [(D("2026-10-01"), "ind", 1000.0), (D("2026-10-05"), "ud", 250.0), (D("2026-10-10"), "ind", 500.0)]
+
+    def test_bankpostering_med_billy_postering_giver_intet(self):
+        p = [post("2026-10-01", 1000), post("2026-10-06", 250, "credit"), post("2026-10-10", 500)]
+        self.assertEqual(rt.tjek_bank_uden_postering(self.ROWS, p, "5710", D("2026-10-01"), D("2026-10-31")), [])
+
+    def test_manglende_postering_fanges_og_kladde_markeres(self):
+        p = [post("2026-10-01", 1000)]
+        fund = rt.tjek_bank_uden_postering(self.ROWS, p, "5710", D("2026-10-01"), D("2026-10-31"),
+                                           kladder=[(D("2026-10-05"), 250.0)])
+        self.assertEqual([(f["dato"], f["beloeb"], f["ligger_som_kladde"]) for f in fund],
+                         [("2026-10-05", 250.0, True), ("2026-10-10", 500.0, False)])
+
+    def test_annulleret_billy_postering_taeller_ikke(self):
+        p = [post("2026-10-01", 1000, voided=True)]
+        fund = rt.tjek_bank_uden_postering(self.ROWS[:1], p, "5710", D("2026-10-01"), D("2026-10-31"))
+        self.assertEqual(len(fund), 1)
+
+    def test_kun_perioden_fra_til(self):
+        self.assertEqual(rt.tjek_bank_uden_postering(self.ROWS, [], "5710", D("2026-10-06"), D("2026-10-09")), [])
+
+    def test_saldo_regnes_baglaens_fra_anker(self):
+        # anker: saldo 1.250 pr. 10/10 efter alle tre posteringer; pr. 5/10 må den være 750
+        self.assertEqual(rt.bank_saldo_pr(D("2026-10-05"), (D("2026-10-10"), 1250.0), self.ROWS), 750.0)
+        self.assertIsNone(rt.bank_saldo_pr(D("2026-10-11"), (D("2026-10-10"), 1250.0), self.ROWS))
+
+    def test_billy_saldo_debit_plus_credit_minus_uden_annullerede(self):
+        p = [post("2026-10-01", 1000), post("2026-10-05", 250, "credit"), post("2026-10-05", 99, voided=True),
+             post("2026-10-20", 5)]
+        self.assertEqual(rt.billy_saldo_pr(D("2026-10-05"), p), 750.0)
+
+    def test_tjek_saldo_ok_afvigelse_og_uafgoerlig(self):
+        anker = (D("2026-10-10"), 1250.0)
+        ok = [post("2026-10-01", 1000), post("2026-10-05", 250, "credit")]
+        self.assertEqual(rt.tjek_saldo(D("2026-10-05"), "5710", anker, self.ROWS, ok), [])
+        skaev = ok + [post("2026-10-03", 92.81)]
+        f = rt.tjek_saldo(D("2026-10-05"), "5710", anker, self.ROWS, skaev)
+        self.assertEqual((f[0]["tjek"], f[0]["forskel"]), ("saldo i Billy afviger fra banken", 92.81))
+        self.assertIn("kan ikke afstemmes", rt.tjek_saldo(D("2026-12-31"), "5710", anker, self.ROWS, ok)[0]["tjek"])
+
+    def test_bank_saldi_laeser_saldo_feltet(self):
+        with tempfile.TemporaryDirectory() as d:
+            with open(os.path.join(d, "a.json"), "w", encoding="utf-8") as fh:
+                json.dump({"konto": "Drift 0001", "tx": [], "saldo": {"beloeb": "1250.5", "dato": "2026-10-10"}}, fh)
+            with open(os.path.join(d, "b.json"), "w", encoding="utf-8") as fh:
+                json.dump({"konto": "Moms 0002", "tx": []}, fh)
+            self.assertEqual(rt.bank_saldi(d, {"5710": "0001", "5715": "0002"}), {"0001": (D("2026-10-10"), 1250.5)})
+
+
+class OmsaetningUdenFaktura(unittest.TestCase):
+    def test_kun_salgskonti_uden_faktura(self):
+        p = [{"konto": "1110", "dato": "2026-06-02", "beloeb": 128.33, "side": "credit", "kilde": "daybookTransaction", "id": "a"},
+             {"konto": "1110", "dato": "2026-06-02", "beloeb": 5000, "side": "credit", "kilde": "invoice", "id": "b"},
+             {"konto": "2210", "dato": "2026-06-02", "beloeb": 1.1, "side": "debit", "kilde": "bankPayment", "id": "c"}]
+        fund = rt.tjek_omsaetning_uden_faktura(p, {"1000", "1110"})
+        self.assertEqual([(f["id"], f["kilde"]) for f in fund], [("a", "daybookTransaction")])
+
+
 if __name__ == "__main__":
     unittest.main()

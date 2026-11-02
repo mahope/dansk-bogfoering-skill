@@ -10,7 +10,7 @@ The skill and its prompts are written in Danish, because the bookkeeping rules, 
 - **Shadow mode (`skygge.py`, `backtest.py`).** Logs every proposal, compares it with what the accountant actually booked, and reports accuracy. A back-test mode learns from older bills and tests on newer ones.
 - **Duplicate finder (`dublet.py`, `dubletter.py`).** Finds bank drafts that are the same purchase as an approved bill (for example a DKK bank draft against a EUR bill), and merges them safely: attachments are compared by content hash, copied, verified and backed up before the draft is deleted.
 - **VAT check (`moms.py`, `ret_moms.py`).** Shows Billy's own VAT return, warns about drafts and missing receipts that would make it wrong, and can correct a VAT code on a single approved bill with backup, a comment and a change log (dry run by default).
-- **Accountant-style audit (`regnskabstjek.py`, read-only).** Payments with no matching bank posting, credit notes that do not reference or exceed their invoice or were never sent to the customer, gaps and duplicates in invoice numbers, and approved bills without a receipt. With `--bilagsindhold` it reads the PDFs and flags foreign receipts without the buyer's VAT number, Danish receipts over 3.000 kr without the buyer's name, or with an amount that does not match the bill. With `--straks` it checks small-asset write-off limits (straksafskrivning) per year.
+- **Accountant-style audit (`regnskabstjek.py`, read-only).** With `--bankafstemning` the bank is the source of truth: bank postings with no posting on the bank account in Billy, and Billy's balance against the bank's balance on a date (BFL § 11). With `--omsaetning` it lists postings on sales accounts that do not come from an invoice, the classic "owner transfer booked as revenue" error. Payments with no matching bank posting, credit notes that do not reference or exceed their invoice or were never sent to the customer, gaps and duplicates in invoice numbers, and approved bills without a receipt. With `--bilagsindhold` it reads the PDFs and flags foreign receipts without the buyer's VAT number, Danish receipts over 3.000 kr without the buyer's name, or with an amount that does not match the bill. With `--straks` it checks small-asset write-off limits (straksafskrivning) per year.
 - **Sourced Danish rules (`bogfoering/reference/`).** Invoice requirements, credit notes, reverse charge (KYE/KYU), representation, VAT-exempt costs, VAT return corrections, the bookkeeping act, write-offs. Every rule points at a primary source (retsinformation.dk, info.skat.dk, Erhvervsstyrelsen), and unverified points are marked as such.
 
 ## Requirements
@@ -77,6 +77,8 @@ python konter.py --maaned 2026-09    # posting proposals, logged to the shadow l
 python skygge.py                     # accuracy against what the accountant booked
 python regnskabstjek.py              # accountant-style audit, read-only
 python regnskabstjek.py --bilagsindhold --straks  # also read receipt PDFs and check write-off limits
+python regnskabstjek.py --bankafstemning --saldo-dato 2026-10-31  # bank as the source of truth + balance reconciliation
+python regnskabstjek.py --omsaetning               # postings on sales accounts that do not come from an invoice
 python moms.py                       # VAT return check
 ```
 
@@ -100,6 +102,7 @@ python moms.py                       # VAT return check
 
 - `konto`: a display name that contains the account's suffix (the value used in `bank.konti`). A file whose `konto` contains none of the configured suffixes is ignored.
 - `tx`: a list of PSD2 transactions. `booking_date` (falls back to `value_date`), `credit_debit_indicator` (`CRDT` = money in, `DBIT` = money out), `transaction_amount.amount` and `status` are used. Transactions with status `PDNG` (pending) are skipped.
+- `saldo` (optional): the bank's booked balance, `{"beloeb": 12345.67, "dato": "2026-11-02"}`, covering all booked transactions up to that date. `--bankafstemning` uses it as the anchor and works backwards to the reconciliation date. Without it the balance check is skipped.
 
 The skill does not fetch bank data and has no payment functionality. Without `bank.konti`, the payment check is skipped; the credit note and receipt checks still run.
 
@@ -141,13 +144,13 @@ Et Claude Code-skill til dansk bogføring i Billy. Det kan:
 - køre i **skyggedrift**, hvor forslagene logges og sammenlignes med bogholderens faktiske bogføring (`skygge.py`, `backtest.py`),
 - finde og rydde dubletter sikkert, med bilagsflyt, kontrol og backup (`dubletter.py`),
 - tjekke moms (`moms.py`) og rette en momskode på en bogført regning med backup og ændringslog (`ret_moms.py`),
-- lave et bogholder-tjek (`regnskabstjek.py`, kun læsning): betalinger uden bankpostering, kreditnotaer uden henvisning eller ikke sendt, huller i fakturanumre, regninger uden bilag og (med `--bilagsindhold`) udenlandske bilag uden købers momsnummer, danske bilag over 3.000 kr. uden købers navn og bilag med forkert beløb,
+- lave et bogholder-tjek (`regnskabstjek.py`, kun læsning): betalinger uden bankpostering, kreditnotaer uden henvisning eller ikke sendt, huller i fakturanumre, bankposteringer uden postering i Billy og saldoafstemning (`--bankafstemning`), omsætning uden faktura (`--omsaetning`), regninger uden bilag og (med `--bilagsindhold`) udenlandske bilag uden købers momsnummer, danske bilag over 3.000 kr. uden købers navn og bilag med forkert beløb,
 - slå op i danske regler med primærkilder (`bogfoering/reference/`).
 
 **Kom i gang:** kopiér eller symlink `bogfoering/` til `~/.claude/skills/`, sæt `BILLY_API_TOKEN` (eller `billy_token_fil` i config), kopiér `config.example.json` til `~/.bogfoering/config.json`, og opret markørfilen `~/.bogfoering/SKYGGEDRIFT`, så skillet ikke kan kontere, godkende eller rette moms i Billy, før I har målt, at forslagene er til at stole på.
 
 **Sikkerhed:** skyggedrift først, aldrig godkendelse i bulk, backup før alle ændringer, ændringslog, og moms indberettes aldrig herfra.
 
-**Bankdata:** valgfrie JSON-filer i Enable Banking/PSD2-format, ét objekt pr. konto med `konto` (visningsnavn med kontoens slutcifre) og `tx` (liste af transaktioner med `booking_date`, `credit_debit_indicator`, `transaction_amount.amount` og `status`). Koblingen fra Billy-kontonummer til slutcifre sættes i `bank.konti`.
+**Bankdata:** valgfrie JSON-filer i Enable Banking/PSD2-format, ét objekt pr. konto med `konto` (visningsnavn med kontoens slutcifre) og `tx` (liste af transaktioner med `booking_date`, `credit_debit_indicator`, `transaction_amount.amount` og `status`), og gerne `saldo` (`{"beloeb", "dato"}`) til saldoafstemningen. Koblingen fra Billy-kontonummer til slutcifre sættes i `bank.konti`.
 
 **Ansvarsfraskrivelse:** dette er ikke professionel regnskabs-, skatte- eller juridisk rådgivning. Reglerne kan være forældede, og konteringsforslagene er statistiske gæt. Gennemgå alt, og tal med jeres bogholder eller revisor.

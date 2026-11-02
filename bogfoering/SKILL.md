@@ -38,6 +38,7 @@ python dubletter.py --fra 2026-09-01     # vis dubletkandidater
 python dubletter.py --fra 2026-09-01 --apply   # slå de sikre sammen (samme leverandør begge sider)
 python konter.py --maaned 2026-09        # konteringsforslag (logges til skyggeloggen)
 python regnskabstjek.py --fra 2026-09-01 # det en bogholder ville gøre indsigelse imod (kun læsning)
+python regnskabstjek.py --fra 2026-07-01 --bankafstemning --saldo-dato 2026-09-30 --omsaetning  # før momsangivelsen
 ```
 Manglende bilag hentes fra leverandørernes fakturaportaler. Upload med `billy.upload_file` + `billy.attach`.
 
@@ -99,7 +100,7 @@ Frister ved halvårlig afregning: H1 → 1. september, H2 → 1. marts. Tjek alt
 | `scripts/analyse.py` | Konteringsforslag og sammenligning (rigtig / skattemæssigt ens / forkert) |
 | `scripts/dublet.py` | Dubletfinder og sikker sammenlægning |
 | `scripts/status.py` / `dubletter.py` / `konter.py` / `skygge.py` / `moms.py` / `backtest.py` / `ret_moms.py` | Kommandoer (se ovenfor) |
-| `scripts/regnskabstjek.py` + `test_regnskabstjek.py` | Bogholder-tjek: betalinger uden bankpostering, kreditnotaer (også ikke sendt), fakturanumre, regninger uden bilag; `--bilagsindhold` (køber og beløb på bilaget) og `--straks` (straksafskrivning) |
+| `scripts/regnskabstjek.py` + `test_regnskabstjek.py` | Bogholder-tjek: betalinger uden bankpostering, kreditnotaer (også ikke sendt), fakturanumre, regninger uden bilag; `--bilagsindhold` (køber og beløb på bilaget), `--straks` (straksafskrivning), `--bankafstemning` (banken som facit og saldoafstemning) og `--omsaetning` (omsætning uden faktura) |
 | `scripts/test_config.py` | Tests af config-indlæsning |
 | `reference/dansk-bogfoering.md` | Danske regler (bogføringsloven, fakturakrav, kreditnota, omvendt betalingspligt, repræsentation, fejlrettelse) med kilder |
 | `reference/dansk-bogfoering-kilder.md` | Den fulde research bag reglerne: ordrette citater og "ikke verificeret"-liste (læst 31/10-2026) |

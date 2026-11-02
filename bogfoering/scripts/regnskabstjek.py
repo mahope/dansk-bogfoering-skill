@@ -6,6 +6,8 @@
     python regnskabstjek.py --uden-bilagstjek  # spring det langsomme bilagstjek over
     python regnskabstjek.py --bilagsindhold    # læs PDF'erne: køber og beløb (kræver PyMuPDF)
     python regnskabstjek.py --straks           # straksafskrivning på regningslinjerne
+    python regnskabstjek.py --bankafstemning   # banken som facit: bankposteringer uden postering + saldoafstemning
+    python regnskabstjek.py --omsaetning       # posteringer på salgskonti, der ikke kommer fra en faktura
 
 Tjek (reglerne og kilderne står i reference/dansk-bogfoering.md og reference/laerte-regler.md):
   1. Betalinger på en bankkonto i Billy (kontiene i config bank.konti) uden en postering med samme beløb og
@@ -18,6 +20,10 @@ Tjek (reglerne og kilderne står i reference/dansk-bogfoering.md og reference/la
   5. --bilagsindhold: udenlandske bilag uden købers momsnummer (mbek § 59), danske bilag over 3.000 kr. uden
      købers navn (mbek § 58), og bilag hvor regningens beløb ikke står.
   6. --straks: småanskaffelser over straksafskrivningsgrænsen og udstyr under den.
+  7. --bankafstemning: bankposteringer uden en postering i Billy (den modsatte retning af tjek 1), og saldoen på
+     Billys bankkonto mod bankens saldo pr. --saldo-dato (BFL § 11). Saldoen kræver feltet 'saldo' i bankfilen.
+  8. --omsaetning: posteringer på salgskonti (billy_konti.salgskonti, standard 1000-1199) uden faktura. Fanger
+     indskud, lån og egne overførsler bogført som omsætning; affiliate-udbetalinger o.l. kan være i orden.
 
 Bankdata (valgfri) ligger som JSON-filer i config bank.data_mappe, i Enable Banking/PSD2-format: et objekt med
 "konto" (visningsnavn, der indeholder kontoens slutcifre) og "tx" (liste af PSD2-transaktioner med booking_date,
@@ -62,6 +68,87 @@ def bank_tx(sti, konti):
                 rows.append((_dato(dag), "ind" if t.get("credit_debit_indicator") == "CRDT" else "ud", round(abs(amt), 2)))
         ud.setdefault(slut, []).extend(rows)
     return ud
+
+
+def bank_saldi(sti, konti):
+    """{'0001': (dato, beløb)}: bankens bogførte saldo fra feltet 'saldo' i bankfilen, hvis det findes
+    ({"saldo": {"beloeb": 12345.67, "dato": "2026-11-02"}}). Saldoen dækker alle bogførte posteringer t.o.m. datoen."""
+    ud = {}
+    for f in glob.glob(os.path.join(sti, "*.json")):
+        with open(f, encoding="utf-8") as fh:
+            d = json.load(fh)
+        slut = next((v for v in konti.values() if v in d.get("konto", "")), None)
+        s = d.get("saldo") or {}
+        if slut and s.get("dato") and s.get("beloeb") is not None:
+            ud[slut] = (_dato(s["dato"]), round(float(s["beloeb"]), 2))
+    return ud
+
+
+def _fortegn(retning, beloeb):
+    return beloeb if retning == "ind" else -beloeb
+
+
+def bank_saldo_pr(dato, anker, rows):
+    """Bankens saldo ved udgangen af 'dato', regnet baglæns fra ankeret (dato_anker, saldo).
+    Returnerer None, hvis ankeret ligger før datoen (så kan saldoen ikke afgøres)."""
+    anker_dato, saldo = anker
+    if anker_dato < dato:
+        return None
+    efter = sum(_fortegn(r, b) for d, r, b in rows if dato < d <= anker_dato)
+    return round(saldo - efter, 2)
+
+
+def billy_saldo_pr(dato, posteringer):
+    """Saldo på en Billy-konto ved udgangen af 'dato'. posteringer: Billy postings (debit = +)."""
+    return round(sum((1 if p.get("side") == "debit" else -1) * float(p.get("baseAmount", p.get("amount")) or 0)
+                     for p in posteringer if not p.get("isVoided") and _dato(p["entryDate"]) <= dato), 2)
+
+
+def tjek_saldo(dato, billy_konto, anker, rows, posteringer, taerskel=1.0):
+    """Saldoafstemning: Billys saldo på bankkontoen skal svare til bankens saldo pr. dato (BFL § 11).
+    En forskel betyder typisk ubogførte bankkladder, dubletter eller betalinger på forkert konto."""
+    bank = bank_saldo_pr(dato, anker, rows)
+    if bank is None:
+        return [{"tjek": "saldo kan ikke afstemmes (bankens saldo er fra før datoen)", "konto": billy_konto, "dato": str(dato)}]
+    billy = billy_saldo_pr(dato, posteringer)
+    if abs(bank - billy) > taerskel:
+        return [{"tjek": "saldo i Billy afviger fra banken", "konto": billy_konto, "dato": str(dato),
+                 "billy": billy, "bank": bank, "forskel": round(billy - bank, 2)}]
+    return []
+
+
+def tjek_bank_uden_postering(rows, posteringer, billy_konto, fra, til, kladder=(), vindue=VINDUE_DAGE):
+    """Bankposteringer, som ikke har en postering med samme beløb og retning på bankkontoen i Billy inden for
+    ±vindue dage. Det er det modsatte af tjek_betalinger: her er banken facit. kladder: [(dato, beløb)] for
+    ubogførte regninger, så fundet kan vise, om posteringen bare venter som kladde.
+    En bankpostering, der dækker flere Billy-poster (fx flere regninger betalt samlet), meldes også: tjek dem i hånden."""
+    pb = [(_dato(p["entryDate"]), "ind" if p.get("side") == "debit" else "ud",
+           round(abs(float(p.get("baseAmount", p.get("amount")) or 0)), 2)) for p in posteringer if not p.get("isVoided")]
+    brugt, fund = set(), []
+    for dag, retning, beloeb in sorted(r for r in rows if fra <= r[0] <= til):
+        bedst = None
+        for i, (pd, pr, pbel) in enumerate(pb):
+            if i in brugt or pr != retning or abs(pbel - beloeb) > 0.005:
+                continue
+            afst = abs((pd - dag).days)
+            if afst <= vindue and (bedst is None or afst < bedst[0]):
+                bedst = (afst, i)
+        if bedst is not None:
+            brugt.add(bedst[1])
+            continue
+        som_kladde = any(abs(kb - beloeb) < 0.005 and abs((kd - dag).days) <= vindue for kd, kb in kladder)
+        fund.append({"tjek": "bankpostering uden postering i Billy", "konto": billy_konto, "dato": str(dag),
+                     "retning": retning, "beloeb": beloeb, "ligger_som_kladde": som_kladde})
+    return fund
+
+
+def tjek_omsaetning_uden_faktura(posteringer, salgskonti):
+    """Posteringer på salgskonti, der ikke kommer fra en faktura eller kreditnota. Indskud, lån og egne overførsler
+    bogført som omsætning er en typisk fejl; affiliate-udbetalinger og lignende kan være i orden, men skal ses.
+    posteringer: dicts med konto, dato, beloeb, side, kilde (Billys originatorReference-type) og id."""
+    return [{"tjek": "omsætning uden faktura", "konto": p["konto"], "dato": p["dato"], "beloeb": p["beloeb"],
+             "side": p["side"], "kilde": p["kilde"], "id": p["id"]}
+            for p in posteringer if p["konto"] in salgskonti and p["kilde"] != "invoice"]
 
 
 def tjek_betalinger(betalinger, bank, konto_nr, konti, vindue=VINDUE_DAGE, med_annullerede=False):
@@ -266,9 +353,15 @@ def main():
     ap.add_argument("--uden-bilagstjek", action="store_true")
     ap.add_argument("--bilagsindhold", action="store_true", help="læs PDF'erne: køber og beløb (langsomt, kræver PyMuPDF)")
     ap.add_argument("--straks", action="store_true", help="tjek straksafskrivning på linjerne (henter linjer pr. regning)")
+    ap.add_argument("--bankafstemning", action="store_true",
+                    help="banken som facit: bankposteringer uden postering i Billy, og saldoafstemning (kræver bankdata)")
+    ap.add_argument("--saldo-dato", help="dato for saldoafstemningen (standard: sidste dag i forrige måned)")
+    ap.add_argument("--omsaetning", action="store_true", help="posteringer på salgskonti, der ikke kommer fra en faktura")
     a = ap.parse_args()
 
-    konto_nr = {acc["id"]: str(acc.get("accountNo")) for acc in billy.paged("/accounts", "accounts")}
+    konti_alle = billy.paged("/accounts", "accounts")
+    konto_nr = {acc["id"]: str(acc.get("accountNo")) for acc in konti_alle}
+    konto_id = {str(acc.get("accountNo")): acc["id"] for acc in konti_alle}
     # OBS: /bankPayments ignorerer minEntryDate, så der filtreres lokalt
     betalinger = [p for p in billy.paged("/bankPayments", "bankPayments") if (p.get("entryDate") or "") >= a.fra]
     if konti:
@@ -310,6 +403,41 @@ def main():
                 linjer.append({"konto": konto_nr.get(l.get("accountId")), "beloeb_dkk": netto * kurs,
                                "dato": b.get("entryDate"), "bill_id": b["id"]})
         fund += tjek_straksafskrivning(linjer, kt.get("smaaanskaffelser", "1840"), kt.get("udstyr", "1880"))
+
+    if a.bankafstemning:
+        if not konti:
+            raise SystemExit("--bankafstemning kræver bank.konti og bankfiler i config")
+        bank = bank_tx(cfg["bank"]["data_mappe"], konti)
+        anker = bank_saldi(cfg["bank"]["data_mappe"], konti)
+        saldo_dato = _dato(a.saldo_dato) if a.saldo_dato else dt.date.today().replace(day=1) - dt.timedelta(days=1)
+        kladder = [(_dato(b["entryDate"]), round(float(b.get("grossAmount") or 0) * float(b.get("exchangeRate") or 1), 2))
+                   for b in billy.bills(a.fra, states=("draft",))]
+        for nr, slut in konti.items():
+            if nr not in konto_id or slut not in bank:
+                print(f"Konto {nr}: ingen konto i Billy eller ingen bankfil, springes over.")
+                continue
+            posteringer = billy.paged(f"/postings?accountId={konto_id[nr]}", "postings")
+            rows = bank[slut]
+            til = max(r[0] for r in rows) - dt.timedelta(days=VINDUE_DAGE)  # det sidste vindue er ikke dækket af bankdata
+            fra = max(_dato(a.fra), min(r[0] for r in rows) + dt.timedelta(days=VINDUE_DAGE))
+            fund += tjek_bank_uden_postering(rows, posteringer, nr, fra, til, kladder)
+            if slut in anker:
+                fund += tjek_saldo(saldo_dato, nr, anker[slut], rows, posteringer)
+            else:
+                print(f"Konto {nr}: bankfilen har ingen 'saldo', saldoafstemningen springes over.")
+
+    if a.omsaetning:
+        iv = cfg["billy_konti"].get("salgskonti", [1000, 1199])
+        salgskonti = {nr for nr in konto_id if nr.isdigit() and iv[0] <= int(nr) <= iv[1]}
+        post = []
+        for nr in sorted(salgskonti):
+            for p in billy.paged(f"/postings?accountId={konto_id[nr]}&minEntryDate={a.fra}", "postings"):
+                if p.get("isVoided"):
+                    continue
+                t = billy.req("GET", f"/transactions/{p['transactionId']}")["transaction"]
+                post.append({"konto": nr, "dato": p["entryDate"], "beloeb": p.get("amount"), "side": p.get("side"),
+                             "kilde": (t.get("originatorReference") or "ukendt:").split(":")[0], "id": p["transactionId"]})
+        fund += tjek_omsaetning_uden_faktura(post, salgskonti)
 
     print(f"Regnskabstjek fra {a.fra}: {len(fund)} ting at se på")
     for slags in sorted({f["tjek"] for f in fund}):

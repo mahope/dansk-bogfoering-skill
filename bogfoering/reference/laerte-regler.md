@@ -63,3 +63,9 @@ Når en bogholder eller revisor sender en liste med rettelser, bliver hvert punk
 - **Reglen:** En kreditnota oprettes altid fra den oprindelige faktura (`creditedInvoiceId`). Den har samme konto, samme momskode og samme valuta, er højst på fakturaens beløb og er dateret efter den. Begrundelsen står i teksten, og den logges i ændringsloggen. Kreditnotaen skal også sendes til kunden (JV D.A.8.1.1.4). En kreditnota, der kun ligger i Billy, er ikke nok. Se `dansk-bogfoering.md`, kreditnota.
 - **Tjek:** `regnskabstjek.py`, "kreditnota …". Undtagelse: fakturasystemer, der selv sender PDF'er til kunden, står altid som "unsent" i Billy, så tjekket kræver kun afsendelse, når den oprindelige faktura er sendt fra Billy.
 - **Status:** Åben, indtil fundene er sendt eller afvist af en person.
+
+## 7. Bankkontiene i Billy skal kunne afstemmes mod banken
+
+- **Hvad gik galt:** Saldoafstemningen (`regnskabstjek.py --bankafstemning`) viste, at Billys saldo på to bankkonti afveg fra banken med samme beløb i hver sin retning. Årsagen var en kassekladde ved årsafslutningen, der flyttede et beløb fra driftskontoen til momskontoen. Overførslen var aldrig sket i banken. Resten af forskellen var ubogførte bankkladder.
+- **Reglen:** En postering på en konto, der er markeret som bankkonto, skal svare til en rigtig bankbevægelse. Omposteringer, fx skyldig moms ved årsafslutningen, bogføres mod en balancekonto (skyldig moms eller mellemregning) og ikke mellem to bankkonti. Bankkladder skal bogføres eller slettes inden afstemningen.
+- **Tjek:** `regnskabstjek.py --bankafstemning --saldo-dato <periodeslut>` før hver momsangivelse. Forskellen pr. månedsslut viser, hvornår en afvigelse opstod.

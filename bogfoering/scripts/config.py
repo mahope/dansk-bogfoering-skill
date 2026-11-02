@@ -10,7 +10,7 @@ Felter (se config.example.json):
   billy_token_fil       Valgfri sti til en env-fil med linjen BILLY_API_TOKEN=... (miljøvariablen vinder).
   bank                  {"data_mappe": mappe med bank-JSON, "konti": {"<Billy-kontonr>": "<kontoens slutcifre>"}}
   billy_konti           Kontonumre i jeres kontoplan: momskonto, udstyr (afskrives), småanskaffelser (straksafskrives)
-                        og restaurant (repræsentation).
+                        og restaurant (repræsentation); salgskonti er et interval [fra, til] til --omsaetning.
   skyggedrift_markoer   Fil, der spærrer skrivning til Billy, så længe den findes. Standard <tilstand_mappe>/SKYGGEDRIFT
 
 Tokenet printes aldrig.
@@ -27,7 +27,8 @@ def standard():
         "tilstand_mappe": "~/.bogfoering",
         "billy_token_fil": None,
         "bank": {"data_mappe": None, "konti": {}},
-        "billy_konti": {"momskonto": "5715", "udstyr": "1880", "restaurant": "1660", "smaaanskaffelser": "1840"},
+        "billy_konti": {"momskonto": "5715", "udstyr": "1880", "restaurant": "1660", "smaaanskaffelser": "1840",
+                        "salgskonti": [1000, 1199]},
         "skyggedrift_markoer": None,
     }
 
